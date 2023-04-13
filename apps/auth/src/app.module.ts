@@ -1,12 +1,14 @@
 import { Module } from '@nestjs/common';
+import { SequelizeModule } from '@nestjs/sequelize';
+import { sequelizeConfig } from './configs/sequelize.config';
 import { AuthModule } from './auth/auth.module';
-import { typeORMConfig } from './configs/typeorm.config';
-import { TypeOrmModule } from '@nestjs/typeorm';
+import { UserModule } from './user/user.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forRoot(typeORMConfig),
-    AuthModule
+    SequelizeModule.forRoot(sequelizeConfig),
+    AuthModule,
+    UserModule,
   ],
 })
 export class AppModule {}

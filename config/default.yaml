@@ -1,11 +1,22 @@
-db:
+db-auth:
   type: mysql
   host: 'localhost'
   port: 3306
   username: root
   password: root
-  database: 'msa-auth'
-  synchronize: true
+  database: msa-auth
+  synchronize: true,
+  logging: false,
+
+db-price:
+  type: mysql
+  host: 'localhost'
+  port: 3306
+  username: root
+  password: root
+  database: msa-price
+  synchronize: true,
+  logging: false,
 
 server:
   port: 8080

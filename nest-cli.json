@@ -27,6 +27,15 @@
       "compilerOptions": {
         "tsConfigPath": "apps/member/tsconfig.app.json"
       }
+    },
+    "stock-price": {
+      "type": "application",
+      "root": "apps/stock-price",
+      "entryFile": "main",
+      "sourceRoot": "apps/stock-price/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/stock-price/tsconfig.app.json"
+      }
     }
   }
 }

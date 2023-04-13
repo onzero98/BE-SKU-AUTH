@@ -1,32 +1,41 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { AuthCredentialsDto } from './dto/auth-credential.dto';
+import { JwtService } from '@nestjs/jwt';
+import { UserService } from '../user/user.service';
 import { KafkaService } from './kafka.service';
 import { KafkaHandler } from './kafka.handler';
-import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
 export class AuthService {
   constructor(
-    private readonly kafkaService: KafkaService,
-    private readonly kafkaHandler: KafkaHandler,
-    private readonly jwtService: JwtService, // JwtService 추가
+    private userService: UserService,
+    private jwtService: JwtService,
+    private kafkaService: KafkaService,
+    private kafkaHandler: KafkaHandler,
   ) {}
 
   async signIn(authcredentialsDto: AuthCredentialsDto): Promise<{ accessToken: string }> {
-    // JwtService를 이용하여 accessToken을 생성합니다.
-    const payload = { username: authcredentialsDto.username, sub: 1 };
-    const accessToken = await this.jwtService.sign(payload);
-  
+    const user = await this.userService.validateUser(authcredentialsDto);
+
+    if (!user) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    const payload = { username: user.username, sub: user.id };
+    const accessToken = this.jwtService.sign(payload);
+
     // Kafka 메시지를 발행합니다.
     await this.kafkaService.publish('signIn', { ...authcredentialsDto, accessToken });
-  
+
     // Kafka 메시지를 구독하고 처리합니다.
     await this.kafkaService.subscribe('signIn', this.kafkaHandler.handleSignIn.bind(this.kafkaHandler));
-  
+
     return { accessToken };
   }
 
-  async signUp(authcredentialsDto: AuthCredentialsDto): Promise<any> {
+  async signUp(authcredentialsDto: AuthCredentialsDto): Promise<void> {
+    await this.userService.createUser(authcredentialsDto);
+
     // Kafka 메시지를 발행합니다.
     await this.kafkaService.publish('signUp', authcredentialsDto);
 

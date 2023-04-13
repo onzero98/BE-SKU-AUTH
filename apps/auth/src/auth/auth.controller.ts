@@ -7,14 +7,14 @@ import { Response } from 'express';
 export class AuthController {
   constructor(private authService: AuthService) {}
 
-  @Post('signIn')
-  async signIn(@Body() authcredentialsDto: AuthCredentialsDto, @Res() res: Response) {
-    const { accessToken } = await this.authService.signIn(authcredentialsDto); // accessToken을 추출합니다.
-    res.status(200).json({ accessToken }); // accessToken만 응답에 포함합니다.
+  @Post('signup')
+  async signUp(@Body(ValidationPipe) authCredentialsDto: AuthCredentialsDto) {
+    return await this.authService.signUp(authCredentialsDto);
   }
 
-  @Post('signUp')
-  async signUp(@Body(ValidationPipe) authcredentialsDto: AuthCredentialsDto) {
-    return await this.authService.signUp(authcredentialsDto);
+  @Post('signin')
+  async signIn(@Body(ValidationPipe) authCredentialsDto: AuthCredentialsDto, @Res() res: Response) {
+    const { accessToken } = await this.authService.signIn(authCredentialsDto);
+    res.status(200).json({ accessToken });
   }
 }
