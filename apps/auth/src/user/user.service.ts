@@ -31,4 +31,12 @@ export class UserService {
       throw new UnauthorizedException('Invalid credentials');
     }
   }
+
+  async updateHasAccount(username: string): Promise<void> {
+    const user = await this.userModel.findOne({ where: { username } });
+    if (user) {
+      user.hasAccount = true;
+      await user.save();
+    }
+  }
 }

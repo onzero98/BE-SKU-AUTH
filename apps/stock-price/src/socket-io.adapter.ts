@@ -1,3 +1,4 @@
+// socket-io.adapter.ts
 import { IoAdapter } from '@nestjs/platform-socket.io';
 import { ServerOptions } from 'socket.io';
 
@@ -5,6 +6,7 @@ export class SocketIoAdapter extends IoAdapter {
   createIOServer(port: number, options?: ServerOptions): any {
     options = {
       ...options,
+      transports: ['websocket'],
       cors: {
         origin: 'http://localhost:3000',
         methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],

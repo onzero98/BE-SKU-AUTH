@@ -12,6 +12,8 @@ export class StockPriceService {
         'diffRate',
         'tradeVolume',
       ],
+      order: [['marketCapBillion', 'DESC']],
+      limit: 7
     });
   }
 }

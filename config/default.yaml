@@ -18,6 +18,16 @@ db-price:
   synchronize: true,
   logging: false,
 
+db-account:
+  type: mysql
+  host: 'localhost'
+  port: 3306
+  username: root
+  password: root
+  database: msa-account
+  synchronize: true,
+  logging: false,
+
 server:
   port: 8080
 

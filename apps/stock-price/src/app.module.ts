@@ -10,8 +10,8 @@ import { StockPriceGateway } from './stockPrice/stockPrice.gateway';
   imports: [
     SequelizeModule.forRoot(sequelizeConfig),
     SequelizeModule.forFeature([stockPrice]),
-    CrawlerModule,
     StockPriceModule,
+    CrawlerModule,
   ],
   providers: [StockPriceGateway],
 })

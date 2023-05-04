@@ -1,14 +1,14 @@
 import { Injectable, OnModuleDestroy } from '@nestjs/common';
-import { Kafka, Consumer, logLevel } from 'kafkajs';
+import { Kafka, logLevel } from 'kafkajs';
 
 @Injectable()
 export class KafkaService implements OnModuleDestroy {
   private kafka: Kafka;
-  private consumer: Consumer;
+  private consumer;
 
   constructor() {
     this.kafka = new Kafka({
-      clientId: 'nestjs-auth-module',
+      clientId: 'nestjs-account-module',
       brokers: ['localhost:9093'],
       logLevel: logLevel.INFO,
     });
@@ -29,7 +29,7 @@ export class KafkaService implements OnModuleDestroy {
   }
 
   async subscribe(topic: string, callback: (message: any) => Promise<any>): Promise<void> {
-    const cur_group = 'nestjs-auth-group-' + topic;
+    const cur_group = 'nestjs-account-group-' + topic;
     const consumer = this.kafka.consumer({
       groupId: cur_group,
       heartbeatInterval: 3000,

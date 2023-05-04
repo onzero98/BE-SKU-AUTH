@@ -23,9 +23,6 @@ export class stockPrice extends Model {
   tradeVolume: number;
 
   @Column(DataType.INTEGER)
-  tradePriceMillion: number;
-
-  @Column(DataType.INTEGER)
   marketCapBillion: number;
 
   @CreatedAt

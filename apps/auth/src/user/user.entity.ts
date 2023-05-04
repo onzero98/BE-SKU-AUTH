@@ -16,6 +16,9 @@ export class User extends Model {
   @Column({ type: DataType.STRING, allowNull: false })
   password: string;
 
+  @Column({ type: DataType.BOOLEAN, allowNull: false, defaultValue: false })
+  hasAccount: boolean;
+
   async validatePassword(password: string): Promise<boolean> {
     return await bcrypt.compare(password, this.password);
   }
