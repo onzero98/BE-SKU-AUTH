@@ -4,9 +4,14 @@ import axios from 'axios';
 import { load, CheerioAPI } from 'cheerio';
 import { stockPrice } from '../stockPrice.model';
 import * as iconv from 'iconv-lite';
+import { KafkaService } from '../kafka/kafka.service';
 
 @Injectable()
 export class CrawlerService {
+  constructor(
+    private kafkaService: KafkaService,
+  ) {}
+
   private readonly logger = new Logger(CrawlerService.name);
 
   async fetchStockData(code) {

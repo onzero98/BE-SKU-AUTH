@@ -4,7 +4,8 @@ import { SequelizeModule } from '@nestjs/sequelize';
 import { stockPrice } from '../src/stockPrice.model';
 import { StockPriceModule } from './stockPrice/stockPrice.module';
 import { CrawlerModule } from './crawler/crawler.module';
-import { StockPriceGateway } from './stockPrice/stockPrice.gateway';
+import { StockPriceAllGateway } from './stockPrice/stockPriceAll.gateway';
+import { StockPriceMainGateway } from './stockPrice/stockPriceMain.gateway';
 
 @Module({
   imports: [
@@ -13,6 +14,6 @@ import { StockPriceGateway } from './stockPrice/stockPrice.gateway';
     StockPriceModule,
     CrawlerModule,
   ],
-  providers: [StockPriceGateway],
+  providers: [StockPriceAllGateway, StockPriceMainGateway],
 })
 export class AppModule {}

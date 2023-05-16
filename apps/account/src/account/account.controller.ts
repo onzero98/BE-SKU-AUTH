@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Res } from '@nestjs/common';
+import { Controller, Post, Get, Body, Res } from '@nestjs/common';
 import { AccountService } from './account.service';
 import { Response } from 'express';
 
@@ -10,5 +10,11 @@ export class AccountController {
   async createAccount(@Body('username') username: string, @Res() res: Response) {
     const { result } = await this.accountService.createAccount(username);
     res.status(200).json({ result });
+  }
+
+  @Post('userCredit')
+  async getUserCredit(@Body('username') username: string, @Res() res: Response){
+    const result = await this.accountService.getUserCredit(username);
+    res.status(200).json(result.credit);
   }
 }

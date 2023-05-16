@@ -5,18 +5,16 @@ import { KafkaService } from '../kafka/kafka.service';
 // import { KafkaHandler } from '../kafka/kafka.handler';
 
 @Injectable()
-export class AccountService {
+export class AccountService implements OnModuleInit {
   private findUsernameResult: boolean | null = null;
 
   constructor(
     @InjectModel(Account) private readonly accountModel: typeof Account,
     private kafkaService: KafkaService,
     // private kafkaHandler: KafkaHandler,
-  ) {
-    this.initializeKafkaListener();
-  }
+  ) {}
 
-  async initializeKafkaListener() {
+  async onModuleInit() {
     await this.kafkaService.subscribe('makeAccount', async (message) => {
       try {
         this.findUsernameResult = await this.handleFindUsername(message);
@@ -24,6 +22,7 @@ export class AccountService {
         console.error(error);
       }
     });
+    await this.kafkaService.subscribe('reqAccountCreditUpdate', this.handleGetAccountCredit.bind(this));
   }
 
   async createAccount(username: string): Promise<{ result: boolean }> {
@@ -37,6 +36,11 @@ export class AccountService {
     return { result: this.findUsernameResult };
   }
 
+  async getUserCredit(username: string): Promise<any>{
+    const result = await this.accountModel.findOne({ where: { username } });
+    return result;
+  }
+
   async handleCreateAccount(message: any): Promise<void> {
     console.log('Received message in handleCreateAccount:', message);
     if (!message || !message.username) {
@@ -46,7 +50,6 @@ export class AccountService {
     const { username } = message;
     await this.createAccount(username);
   }
-  
 
   async handleFindUsername(message: any): Promise<any> {
     if (message.userNotFound) {
@@ -58,7 +61,7 @@ export class AccountService {
       if (existingAccount) {
         return false;
       }
-
+      
       const account = new Account();
       account.username = username;
       account.credit = 1000000;
@@ -67,6 +70,18 @@ export class AccountService {
       return true;
     } else {
       return false;
+    }
+  }
+
+  async handleGetAccountCredit(message: any): Promise<void> {
+    const { username, amount } = message;
+
+    const account = await this.accountModel.findOne({ where: { username } });
+    if (account) {
+      account.credit += amount;
+      await account.save();
+    } else {
+      
     }
   }
 }

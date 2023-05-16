@@ -5,8 +5,4 @@ import { PortfolioService } from './portfolio.service';
 export class PortfolioController {
   constructor(private readonly portfolioService: PortfolioService) {}
 
-  @Get()
-  getHello(): string {
-    return this.portfolioService.getHello();
-  }
 }

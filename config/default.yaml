@@ -28,6 +28,26 @@ db-account:
   synchronize: true,
   logging: false,
 
+db-portfolio:
+  type: mysql
+  host: 'localhost'
+  port: 3306
+  username: root
+  password: root
+  database: msa-portfolio
+  synchronize: true,
+  logging: false,
+
+db-order:
+  type: mysql
+  host: 'localhost'
+  port: 3306
+  username: root
+  password: root
+  database: msa-order
+  synchronize: true,
+  logging: false,
+
 server:
   port: 8080
 

@@ -4,6 +4,6 @@ import { AccountModule } from './account/account.module';
 async function bootstrap() {
   const app = await NestFactory.create(AccountModule);
   app.enableCors();
-  await app.listen(8081);
+  await app.listen(8082);
 }
 bootstrap();

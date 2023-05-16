@@ -6,10 +6,10 @@ import {
   WebSocketServer,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { StockPriceService } from '../stockPrice/stockPrice.service';
+import { StockPriceService } from './stockPrice.service';
 
-@WebSocketGateway({ path: '/stock-prices' })
-export class StockPriceGateway implements OnGatewayConnection, OnGatewayDisconnect {
+@WebSocketGateway({ path: '/stock-prices-all' })
+export class StockPriceAllGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   private server: Server;
   private clients: Socket[] = [];
@@ -27,18 +27,18 @@ export class StockPriceGateway implements OnGatewayConnection, OnGatewayDisconne
   }
 
   async fetchAndBroadcastData() {
-    const stockData = await this.stockPriceService.getAllStockPricesMain();
+    const stockData = await this.stockPriceService.getAllStockPrices();
 
     this.clients.forEach((client) => {
-      client.emit('stockData', stockData);
+      client.emit('stockDataAll', stockData);
     });
 
     setTimeout(() => this.fetchAndBroadcastData(), 3000);
   }
 
-  @SubscribeMessage('stockData')
+  @SubscribeMessage('stockDataAll')
   async handleStockData(client: Socket) {
-    const stockData = await this.stockPriceService.getAllStockPricesMain();
-    client.emit('stockData', stockData);
+    const stockData = await this.stockPriceService.getAllStockPrices();
+    client.emit('stockDataAll', stockData);
   }
 }
