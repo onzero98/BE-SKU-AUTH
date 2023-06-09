@@ -8,7 +8,7 @@ export class KafkaService implements OnModuleDestroy {
 
   constructor() {
     this.kafka = new Kafka({
-      clientId: 'nestjs-order-module',
+      clientId: 'nestjs-order-log-module',
       brokers: ['localhost:9093'],
       logLevel: logLevel.ERROR,
     });
@@ -29,7 +29,7 @@ export class KafkaService implements OnModuleDestroy {
   }
 
   async subscribe(topic: string, callback: (message: any) => Promise<any>): Promise<void> {
-    const cur_group = 'nestjs-order-group-' + topic;
+    const cur_group = 'nestjs-order-log-group-' + topic;
     const consumer = this.kafka.consumer({
       groupId: cur_group,
       heartbeatInterval: 3000,

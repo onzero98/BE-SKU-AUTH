@@ -46,14 +46,15 @@ export class CrawlerService {
   async crawlAndSaveToDB() {
     const now = new Date();
     const day = now.getDay();
-    const startHour = 9;
+    const startHour = 8;
+    const startMinute = 55;
     const endHour = 15;
     const endMinute = 30;
   
     // 주말이 아닌지 확인합니다.
     const isWeekday = day > 0 && day < 6;
   
-    const isAfterStartTime = now.getHours() > startHour || (now.getHours() === startHour && now.getMinutes() >= 0);
+    const isAfterStartTime = now.getHours() > startHour || (now.getHours() === startHour && now.getMinutes() >= startMinute);
     const isBeforeEndTime = now.getHours() < endHour || (now.getHours() === endHour && now.getMinutes() <= endMinute);
     
     // 주말이 아니고 시간이 지정된 범위 내에 있으면 크롤링을 진행합니다.
@@ -92,7 +93,7 @@ export class CrawlerService {
         }
       }
     } else {
-      this.logger.debug('Outside of crawling hours');
+      this.logger.debug('장 운영 시간이 아닙니다.');
     }
   }
 }

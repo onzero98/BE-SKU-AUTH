@@ -63,6 +63,15 @@
       "compilerOptions": {
         "tsConfigPath": "apps/portfolio/tsconfig.app.json"
       }
+    },
+    "order-log": {
+      "type": "application",
+      "root": "apps/order-log",
+      "entryFile": "main",
+      "sourceRoot": "apps/order-log/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/order-log/tsconfig.app.json"
+      }
     }
   }
 }

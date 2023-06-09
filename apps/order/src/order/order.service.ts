@@ -2,6 +2,7 @@ import { Injectable, OnModuleInit } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { KafkaService } from '../kafka/kafka.service';
 import { Order } from './order.model';
+import { Sequelize } from 'sequelize';
 import * as crypto from 'crypto';
 
 @Injectable()
@@ -15,7 +16,7 @@ export class OrderService implements OnModuleInit {
 
   async onModuleInit() {
     await this.kafkaService.subscribe('createOrder', this.handleCreateOrder.bind(this));
-    // await this.kafkaService.subscribe('cancelOrder', this.handleCancelOrder.bind(this));
+    await this.kafkaService.subscribe('cancelOrder', this.handleCancelOrder.bind(this));
     await this.kafkaService.subscribe('resAccountCreditUpdate', this.handleAccountCreditResponse.bind(this));
     await this.kafkaService.subscribe('resPortfolioAmount', this.handlePortfolioAmountResponse.bind(this));
     await this.kafkaService.subscribe('resCurrentPrice', this.handleCurrentPriceResponse.bind(this));
@@ -24,6 +25,7 @@ export class OrderService implements OnModuleInit {
 
   async createOrder(orderData: any): Promise<any> {
     let orderId;
+    const { method } = orderData;
 
     const currentDate = new Date();
     const timezoneOffset = currentDate.getTimezoneOffset() * 60000;
@@ -32,7 +34,7 @@ export class OrderService implements OnModuleInit {
 
     while (true) {
       const randomString = crypto.randomBytes(3).toString('hex').toUpperCase();
-      orderId = `O-${formattedDate}${randomString}`;
+      orderId = `O${method}${formattedDate}${randomString}`;
       const existingOrder = await this.orderModel.findOne({
         where: {
           orderId: orderId,
@@ -45,76 +47,116 @@ export class OrderService implements OnModuleInit {
     }
 
     const order = await this.orderModel.create({ ...orderData, status: 'W', orderId });
-  
     return order.dataValues ;
   }
   
-
   // 주문 생성 처리
   async handleCreateOrder(message: any): Promise<void> {
-
-    const { username, method, companyName, code, targetPrice, amount } = message;
+    const { username, method, companyName, code, price, amount } = message;
     const result = await this.createOrder({...message});
 
     this.addWaitingOrder(result);
-
-    await this.kafkaService.publish('reqPortfolioAmount', {
-      orderId: result.orderId,
-      username,
-      code,
-      amount,
-    });
-  }
-
-  async handleCancelOrder(message: any): Promise<void> {
-    const { id } = message.value;
-
-    const order = await this.orderModel.findByPk(id);
-    if (order && order.status === 'W') {
-      order.status = 'C';
-      await order.save();
+    if (method === 'B') {
+      await this.kafkaService.publish('reqAccountCreditUpdate', {
+        orderId: result.orderId,
+        method,
+        username,
+        amount : price * amount,
+      });
+    } else {
+      await this.kafkaService.publish('reqPortfolioAmount', {
+        orderId: result.orderId,
+        username,
+        code,
+        amount,
+      });
     }
   }
 
-  // 각 모듈의 응답 처리
+  // 주문 취소 상태 처리
+  async handleCancelOrder(message: any): Promise<void> {
+    const { orderId, method, username, amount, price } = message;
+    const order = await this.orderModel.findOne({ where: { orderId } })
+    if (order && order.status === 'W') {
+      if(order.method === 'B'){
+        order.status = 'C';
+        this.removeWaitingOrder(order);
+        await this.kafkaService.publish('orderStatusUpdated', order);
+        await order.destroy();
+        
+        await this.kafkaService.publish('reqAccountCreditUpdate', {
+          orderId,
+          method: 'S',
+          username,
+          amount : price * amount,
+        });
+      } else if (order.method === 'S'){
+        order.status = 'C';
+        this.removeWaitingOrder(order);
+        await this.kafkaService.publish('orderStatusUpdated', order);
+        await order.destroy();
+
+        await this.kafkaService.publish('updatePortfolio', {
+          username: order.username,
+          code: order.code,
+          companyName: order.companyName,
+          amount: order.amount,
+          price: order.price,
+          method: 'B',
+          status: 'C'
+        });
+      }
+    } 
+  }
+
+  //
   async handleAccountCreditResponse(message: any): Promise<void> {
-    const { success, orderId } = message.value;
-    const order = await this.orderModel.findByPk(orderId);
-if (order && order.status === 'W') {
-  if (success) {
-    order.status = 'P';
-  } else {
-    order.status = 'F';
+    const { success, orderId } = message;
+    const order = await this.orderModel.findOne({ where: { orderId } })
+  
+    if (order && order.status === 'W') {
+      if (success) {
+        if (order.method === 'B') {
+          await this.kafkaService.publish('reqCurrentPrice', {
+            code: order.code,
+            orderId: order.orderId,
+          });
+        }
+      } else {
+        // 크레딧이 부족할 경우, 주문 상태 변경
+        order.status = 'F';
+        this.removeWaitingOrder(order);
+        await this.kafkaService.publish('orderStatusUpdated', order);
+        await order.destroy();
+      }
+    }
   }
-  await order.save();
-}
-  }
+  
 
   async handlePortfolioAmountResponse(message: any): Promise<void> {
     // // Account 모듈의 credit 조회 응답 처리
     const { username, code, amount, orderId, status } = message;
     const order = await this.orderModel.findOne({ where: { username, code, orderId } });
-
+    
     if (order && order.status === 'W') {
-      // 포폴에 있는 양보다 같거나 적을 경우에만 계산
-      if (status === 'Passed') {
-        await this.kafkaService.publish('reqCurrentPrice', {
-          code,
-          orderId: order.id,
-        });
-      } else {
-        // 주식 수량 부족할 경우, 주문 상태 변경
+    // 포폴에 있는 양보다 같거나 적을 경우에만 계산
+    if (status === 'Passed') {
+      await this.kafkaService.publish('reqCurrentPrice', {
+        code,
+        orderId: order.orderId,
+      });
+    } else {
+      // 주식 수량 부족할 경우, 주문 상태 변경
         order.status = 'F';
         this.removeWaitingOrder(order);
-        await order.save();
+        await this.kafkaService.publish('orderStatusUpdated', order);
+        await order.destroy();
       }
     }
   }
 
   async handleStockPriceUpdated(message: any): Promise<void> {
-    const { code } = message;
-
-    const orderIds = this.waitingOrders.get(code);
+    const { code } = message;const orderIds = this.waitingOrders.get(code);
     if (orderIds) {
       for (const orderId of orderIds) {
         await this.kafkaService.publish('reqCurrentPrice', {
@@ -132,7 +174,7 @@ if (order && order.status === 'W') {
     }
     this.waitingOrders.get(code).add(orderId);
   }
-
+  
   private removeWaitingOrder(order: Order): void {
     const { code, orderId } = order;
     if (this.waitingOrders.has(code)) {
@@ -142,32 +184,72 @@ if (order && order.status === 'W') {
       }
     }
   }
-
+  
   async handleCurrentPriceResponse(message: any): Promise<void> {
-    // stock-price 모듈의 주식 현재 가격 조회 응답 처리
     const { orderId, code, currentPrice } = message;
-    const order = await this.orderModel.findByPk(orderId);
-if (order && order.status === 'W') {
-  if (order.price <= currentPrice) {
-    // 가격 조건 만족 시, 계좌에 금액 증가 요청
-    const totalAmountCredit = order.amount * currentPrice;
-    await this.kafkaService.publish('reqAccountCreditUpdate', {
-      username: order.username,
-      amount: totalAmountCredit,
-      orderId: order.id,
-    });
+    const order = await this.orderModel.findOne({ where: { orderId } });
+    
+    if (order && order.status === 'W') {
+      if (order.method === 'B' && order.price >= currentPrice) {
+        // 매수 주문이며, 주문 가격이 현재 가격보다 높거나 같을 때
+        await this.kafkaService.publish('updatePortfolio', {
+          username: order.username,
+          code: order.code,
+          companyName: order.companyName,
+          amount: order.amount,
+          price: order.price,
+          method: 'B',
+          status: order.status
+        });
+  
+        order.status = 'P';
+        this.removeWaitingOrder(order);
+        await this.kafkaService.publish('orderStatusUpdated', order);
+        await order.destroy();
 
-    order.status = 'P';
-    this.removeWaitingOrder(order);
-    await order.save();
-  } else {
-    setTimeout(() => {
+      } else if (order.method === 'S' && order.price <= currentPrice) {
+        // 매도 주문이며, 주문 가격이 현재 가격보다 낮거나 같을 때
+        const totalAmountCredit = order.amount * currentPrice;
+        await this.kafkaService.publish('reqAccountCreditUpdate', {
+          orderId: order.orderId,
+          method: 'S',
+          username: order.username,
+          amount: totalAmountCredit,
+        });
+  
+        order.status = 'P';
+        this.removeWaitingOrder(order);
+        await this.kafkaService.publish('orderStatusUpdated', order);
+        await order.destroy();
+
+      } else {
+        setTimeout(() => {
           this.kafkaService.publish('reqCurrentPrice', {
-            orderId: order.id,
+            orderId: order.orderId,
             code,
           });
         }, 3000);
+      }
+    }
+  }  
+
+  async getUserOrderLists(username: string): Promise<any[]> {
+    const orders = await this.orderModel.findAll({
+      where: {
+        username: username,
+        status: 'W',
+      },
+    });
+    return orders.map(order => order.dataValues);
   }
-}
+  
+  async handleGetAmountStock(message: any): Promise<any> {
+    const { username, code } = message;
+    const totalAmount = await this.orderModel.findAll({
+        where: { username, code, method:'S' },
+        attributes: [[Sequelize.fn('sum', Sequelize.col('amount')), 'amount']],
+        raw: true
+    });
+    return totalAmount[0].amount;
   }
 }

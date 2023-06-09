@@ -1,16 +1,15 @@
 import { Module } from '@nestjs/common';
 import { sequelizeConfig } from './configs/sequelize.config';
 import { SequelizeModule } from '@nestjs/sequelize';
-import { OrderModule } from './order/order.module';
-import { Order } from './order/order.model';
-import { OrderListGateway } from './order/orderList.gateway';
+import { OrderLogModule } from './orderLog/orderLog.module';
+import { OrderLog } from './orderLog/orderLog.model';
 
 @Module({
   imports: [
     SequelizeModule.forRoot(sequelizeConfig),
-    SequelizeModule.forFeature([Order]),
-    OrderModule
+    SequelizeModule.forFeature([OrderLog]),
+    OrderLogModule
   ],
-  providers: [OrderListGateway],
+  
 })
 export class AppModule {}

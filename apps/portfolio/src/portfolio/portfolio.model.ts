@@ -1,11 +1,11 @@
-import { Table, Column, Model, DataType, CreatedAt, UpdatedAt, Unique} from 'sequelize-typescript';
+import { BeforeUpdate, BeforeCreate, Table, Column, Model, DataType, CreatedAt, UpdatedAt, Unique} from 'sequelize-typescript';
 
 @Table({
   indexes: [{
     name: 'UniqueUserAndCode',
     unique: true,
     fields: ['username', 'code']
-},]
+  },]
 })
 export class Portfolio extends Model {
   @Column({
@@ -28,7 +28,10 @@ export class Portfolio extends Model {
   amount: number;
 
   @Column(DataType.FLOAT)
-  bPrice: number;
+  boughtPrice: number;
+
+  @Column(DataType.FLOAT)
+  avgPrice: number;
 
   @CreatedAt
   @Column(DataType.DATE)
@@ -37,4 +40,22 @@ export class Portfolio extends Model {
   @UpdatedAt
   @Column(DataType.DATE)
   updatedAt: Date;
+
+  @BeforeUpdate
+  static updateAvgPrice(instance: Portfolio) {
+    if (instance.amount !== 0) {
+      instance.avgPrice = instance.boughtPrice / instance.amount;
+    } else if (instance.amount === 0 && instance.previous('amount') !== 0) {
+      instance.avgPrice = instance.previous('avgPrice');
+    }
+  }
+
+  @BeforeCreate
+  static createAvgPrice(instance: Portfolio) {
+    if (instance.amount !== 0) {
+      instance.avgPrice = instance.boughtPrice / instance.amount;
+    } else {
+      instance.avgPrice = 0;
+    }
+  }
 }

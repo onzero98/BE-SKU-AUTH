@@ -10,7 +10,7 @@ export class KafkaService implements OnModuleDestroy {
     this.kafka = new Kafka({
       clientId: 'nestjs-stock-price-module',
       brokers: ['localhost:9093'],
-      logLevel: logLevel.INFO,
+      logLevel: logLevel.ERROR,
     });
   }
 

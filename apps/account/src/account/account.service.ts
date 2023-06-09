@@ -74,14 +74,24 @@ export class AccountService implements OnModuleInit {
   }
 
   async handleGetAccountCredit(message: any): Promise<void> {
-    const { username, amount } = message;
+    const { orderId, method, username, amount,} = message;
 
     const account = await this.accountModel.findOne({ where: { username } });
     if (account) {
-      account.credit += amount;
-      await account.save();
-    } else {
+      if( method === 'B' ){
+        if(account.credit >= amount){
+          account.credit -= amount;
+          await account.save();
+          await this.kafkaService.publish('resAccountCreditUpdate', { orderId, success:true });
+        } else {
+          await this.kafkaService.publish('resAccountCreditUpdate', { orderId, success:false });
+        }
+      }
       
+      else if( method === 'S' ){
+        account.credit += amount;
+        await account.save();
+      }
     }
   }
 }

@@ -11,5 +11,6 @@ import { Portfolio } from './portfolio.model';
   ],
   controllers: [PortfolioController],
   providers: [PortfolioService, KafkaService],
+  exports: [PortfolioService]
 })
 export class PortfolioModule {}

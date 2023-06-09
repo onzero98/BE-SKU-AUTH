@@ -11,5 +11,6 @@ import { Order } from './order.model';
   ],
   controllers: [OrderController],
   providers: [OrderService, KafkaService],
+  exports: [OrderService]
 })
 export class OrderModule {}
